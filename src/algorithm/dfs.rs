@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use std::thread;
 use std::sync::Arc;
 use std::cmp::min;
+use std::time::Instant;
 use crate::structure::{Graph, GraphPath};
 
 /// 从now开始往外探，最多探k度
@@ -160,6 +161,8 @@ fn dfs_for_continue(
     }
 }
 
+use std::rc::Rc;
+
 fn dfs_for_continue_parallel(
     temp_result: Arc<Vec<GraphPath>>, 
     target: i64, 
@@ -172,7 +175,10 @@ fn dfs_for_continue_parallel(
     for i in 0..4 {
         let temp_result = temp_result.clone();
         let graph = graph.clone();
+        let x = Rc::new(5);
         let handler = thread::spawn(move || -> Vec<GraphPath> {
+            let cur = Instant::now();
+            let x = x.clone()
             let mut result = Vec::new();
             for (idx, p) in temp_result.iter().enumerate() {
                 if idx % 4 == i {
@@ -195,6 +201,8 @@ fn dfs_for_continue_parallel(
                         &mut vesited);
                     }
             }
+            let stop = cur.elapsed();
+            println!("thread {} {:?}", i, stop);
             (result)
         });
 
@@ -207,6 +215,91 @@ fn dfs_for_continue_parallel(
     }
 }
 
+pub fn dfs_stealing(
+    now: i64, 
+    target: i64, 
+    k: u32, 
+    graph: &Graph, 
+    result: &mut Vec<GraphPath>,
+    path: &mut GraphPath, 
+    rev: bool, 
+    visit: &mut HashSet<i64>) {
+    if now == target {
+        // 停止条件2
+        let ans = Vec::from(&path[0..path.len() - 1]);
+        result.push(ans);
+        return;
+    } else if k == 0 {
+        // 停止条件3
+        return;
+    }
+    visit.insert(now);
+    let next = if rev { graph.in_v(now) } else { graph.out_v(now) };
+    if let Some(nodes) = next {
+        for v in nodes.iter() {
+            if !visit.contains(v) {
+                path.push(*v);
+                dfs(*v, target, k - 1, graph, result, path, rev, visit);
+                path.pop();
+            }
+        }
+    }
+    visit.remove(&now);
+}
+
+// 自己下蛋模式，一旦线程数不满，就可以开线程
+// 坑抢任务模式如果一个线程做完了任务就去抢别人的前缀
+fn dfs_for_continue_parallel_balance_stealing(
+    temp_result: Arc<Vec<GraphPath>>, 
+    target: i64, 
+    k: u32, 
+    graph: Arc<Graph>, 
+    result: &mut Vec<GraphPath>,
+    rev: bool, 
+) {
+    let mut handlers = vec![];
+    for i in 0..4 {
+        let temp_result = temp_result.clone();
+        let graph = graph.clone();
+        let x = Rc::new(5);
+        let handler = thread::spawn(move || -> Vec<GraphPath> {
+            let cur = Instant::now();
+            let mut result = Vec::new();
+            let x = x.clone();
+            for (idx, p) in temp_result.iter().enumerate() {
+                if idx % 4 == i {
+                    let mut path = p.clone();
+                    let mut vesited = HashSet::<i64>::new();
+                    for ele in path.iter() {
+                        vesited.insert(*ele);
+                    }
+                    let len = path.len();
+                    let now = path[len - 1];
+  
+                    dfs(
+                        now, 
+                        target, 
+                        k - len as u32, 
+                        graph.as_ref(), 
+                        &mut result, 
+                        &mut path, 
+                        rev, 
+                        &mut vesited);
+                    }
+            }
+            let stop = cur.elapsed();
+            println!("thread {} {:?}", i, stop);
+            (result)
+        });
+
+        handlers.push(handler);
+    }
+    
+    for handle in handlers.drain(..) {
+        let mut res = handle.join().unwrap();
+        result.append(&mut res);
+    }
+}
 
 #[cfg(test)] 
 mod tests {

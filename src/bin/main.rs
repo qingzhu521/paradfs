@@ -47,5 +47,4 @@ fn main() {
     // dfs_parallel()
     let stop = cur.elapsed();
     println!("{:?}", stop);
-    println!("test");
 }
