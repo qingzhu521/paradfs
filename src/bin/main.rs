@@ -1,6 +1,7 @@
-use paradfs::structure::{Graph, GraphPath};
+use paradfs::structure::GraphPath;
 use paradfs::utils::load_source_text::load_data;
-use paradfs::algorithm::dfs::{dfs, dfs_parallel};
+use paradfs::algorithm::dfs::dfs;
+use paradfs::algorithm::dfs_parallel::dfs_parallel;
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Instant;
@@ -24,6 +25,7 @@ fn main() {
         k,
         &graph,
         &mut result,
+        &mut None,
         &mut path,
         false,
         &mut visited
@@ -40,6 +42,7 @@ fn main() {
         k,
         Arc::new(graph),
         &mut result,
+        None,
         &mut path,
         false,
         &mut visited

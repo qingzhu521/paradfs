@@ -125,7 +125,6 @@ impl ByteBuffer {
         self.data.as_mut_slice()
     }
 
-    // 将buf末尾的数据copy至开头，并且将pos置为数据末尾，limit置为buf末尾
     pub fn compact(&mut self) {
         unsafe {copy(self.ptr.offset(self.pos as isize), self.ptr, self.remaining());}
         self.pos = self.remaining();
@@ -182,7 +181,6 @@ mod tests {
         buf.compact();
         buf.flip();
         assert_eq!(buf.get::<usize>().unwrap(), 2);
-
     }
 
 }
