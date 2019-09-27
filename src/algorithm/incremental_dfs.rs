@@ -36,17 +36,19 @@ pub fn incremental_path(
     u: i64,
     v: i64,
     limit: u32,
-    graph: Arc<Graph>,
+    mut graph: Graph,
     result: &mut Vec<GraphPath>,
 ) {
     let half_len = (limit + 1) / 2;
     let mut left_part_answer = vec![];
     let mut left_answer = vec![];
-    cal_part(u, v, half_len, graph.clone(), &mut left_part_answer, &mut left_answer);
+    let graph_arc = Arc::new(graph);
+    cal_part(u, v, half_len, graph_arc.clone(), &mut left_part_answer, &mut left_answer);
     let mut right_part_answer = vec![];
     let mut right_answer = vec![];
-    cal_part(v, u, half_len, graph.clone(), &mut right_part_answer, &mut right_answer);
-
+    cal_part(v, u, half_len, graph_arc.clone(), &mut right_part_answer, &mut right_answer);
+    let mut graph = Arc::try_unwrap(graph_arc).ok().unwrap();
+    
     let mut lu = vec![];
     let mut lv = vec![];
     let mut minlu = usize::max_value();
@@ -79,6 +81,15 @@ pub fn incremental_path(
         }
     }
     
-    
+    graph.add_undirected_edge(u, v);
+    // 三种情况
+    if lu.len() == 0 && rv.len() == 0 {
+        // there is nothing to do
+    } else if lu.len() != 0 && rv.len() == 0 {
+        //
+        
+    } else {
+        //
+    }
 }
 
